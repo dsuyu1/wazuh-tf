@@ -15,8 +15,8 @@ Wazuh manager. As an overview:
 
 ## Prerequisites
 
-### On your Raspberry Pi (Wazuh Manager)
-Enable password-based agent enrollment in `/var/ossec/etc/ossec.conf`:
+### Configure Wazuh Manager
+Enable [password-based agent enrollment](https://documentation.wazuh.com/current/user-manual/agent/agent-enrollment/security-options/using-password-authentication.html) in `/var/ossec/etc/ossec.conf`:
 
 ```xml
 <auth>
@@ -26,10 +26,27 @@ Enable password-based agent enrollment in `/var/ossec/etc/ossec.conf`:
 
 Set the password:
 ```bash
-echo "YOUR_REGISTRATION_PASSWORD" > /var/ossec/etc/authd.pass
+echo "<CUSTOM_PASSWORD>" > /var/ossec/etc/authd.pass
 chmod 640 /var/ossec/etc/authd.pass
 chown root:wazuh /var/ossec/etc/authd.pass
-systemctl restart wazuh-manager
+```
+
+Run the following command to get the Wazuh agent enrollment password:
+```bash
+grep "Random password" /var/ossec/logs/ossec.log
+```
+
+If you don't have Wazuh manager installed, you can run these commands:
+```bash
+curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH \
+  | gpg --dearmor -o /usr/share/keyrings/wazuh.gpg
+
+echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main" \
+  > /etc/apt/sources.list.d/wazuh.list
+
+apt-get update
+apt-get install wazuh-manager
+systemctl enable --now wazuh-manager
 ```
 
 Verify authd is listening:
@@ -41,7 +58,7 @@ ss -tlnp | grep 1515
 If you already use Cloudflare Tunnels, you may find that it's most natural to use Cloudflare Tunnels for agent management.
 - For example, your Wazuh instance is not publicly accessible (e.g., it's locally hosted).
 
-Expose port `1514` (for agent telemetry) and `55000` (API) via your tunnel config on the Pi. The `cloudflare_tunnel_token` variable in `tfvars` can install the tunnel daemon on each agent VM too.
+Expose port `1514` (for agent telemetry) and `55000` (API) via your tunnel config. The `cloudflare_tunnel_token` variable in `tfvars` can install the tunnel daemon on each agent VM too.
 - An example `tfvars` file is provided.
 
 ### Local Machine
