@@ -13,11 +13,6 @@ output "agent_private_ips" {
   value       = { for k, v in aws_instance.wazuh_agent : k => v.private_ip }
 }
 
-output "wazuh_groups_created" {
-  description = "Wazuh agent groups that were created/verified"
-  value       = tolist(local.unique_groups)
-}
-
 output "security_group_id" {
   description = "Security group attached to all agent instances"
   value       = aws_security_group.wazuh_agent.id

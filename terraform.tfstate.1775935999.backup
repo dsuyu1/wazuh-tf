@@ -1,7 +1,7 @@
 {
   "version": 4,
   "terraform_version": "1.14.8",
-  "serial": 52,
+  "serial": 50,
   "lineage": "cfbb5d06-0b14-5131-3b4d-759a1c9aa36c",
   "outputs": {
     "agent_instance_ids": {
@@ -816,6 +816,32 @@
             "id": "6847835126928619514",
             "triggers": {
               "group_name": "linux-endpoints"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        },
+        {
+          "index_key": "vuln-lab",
+          "status": "tainted",
+          "schema_version": 0,
+          "attributes": {
+            "id": "8872486645867458790",
+            "triggers": {
+              "group_name": "vuln-lab"
+            }
+          },
+          "sensitive_attributes": [],
+          "identity_schema_version": 0
+        },
+        {
+          "index_key": "web-servers",
+          "status": "tainted",
+          "schema_version": 0,
+          "attributes": {
+            "id": "6877367834440210508",
+            "triggers": {
+              "group_name": "web-servers"
             }
           },
           "sensitive_attributes": [],

@@ -6,14 +6,6 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    http = {
-      source  = "hashicorp/http"
-      version = "~> 3.4"
-    }
-    null = {
-      source  = "hashicorp/null"
-      version = "~> 3.2"
-    }
   }
 }
 
@@ -134,47 +126,5 @@ resource "aws_instance" "wazuh_agent" {
 
   lifecycle {
     ignore_changes = [ami] # Don't reprovision on AMI updates
-  }
-}
-
-# ── Wazuh Agent Group Creation via API ───────────────────────────────────────
-# Creates agent groups on your Wazuh manager via the REST API.
-# Runs once per unique group defined in var.agents.
-
-locals {
-  unique_groups = toset([for agent in var.agents : agent.group])
-}
-
-resource "null_resource" "create_wazuh_groups" {
-  for_each = local.unique_groups
-
-  triggers = {
-    group_name = each.key
-  }
-
-  provisioner "local-exec" {
-    interpreter=["bash", "-c"]
-    command = <<-EOT
-      # Obtain JWT token from Wazuh API
-      TOKEN=$(curl -s -u "${var.wazuh_api_user}:${var.wazuh_api_password}" \
-        -X POST "${var.wazuh_api_url}/security/user/authenticate" \
-        -H "Content-Type: application/json" \
-        -k | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['token'])")
-
-      # Create the agent group (idempotent — 400 if exists, which we ignore)
-      HTTP_CODE=$(curl -s -o /dev/null -w "%%{http_code}" \
-        -X POST "${var.wazuh_api_url}/groups" \
-        -H "Authorization: Bearer $TOKEN" \
-        -H "Content-Type: application/json" \
-        -d '{"group_id": "${each.key}"}' \
-        -k)
-
-      echo "Group '${each.key}' creation returned HTTP $HTTP_CODE"
-      # 200 = created, 400 = already exists — both are acceptable
-      if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "400" ]; then
-        echo "ERROR: Unexpected response $HTTP_CODE creating group ${each.key}"
-        exit 1
-      fi
-    EOT
   }
 }

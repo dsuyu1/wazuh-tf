@@ -36,25 +36,6 @@ variable "wazuh_registration_password" {
   sensitive   = true
 }
 
-# ── Wazuh API ─────────────────────────────────────────────────────────────────
-
-variable "wazuh_api_url" {
-  description = "Wazuh REST API URL (e.g. https://wazuh.yourdomain.com:55000)"
-  type        = string
-}
-
-variable "wazuh_api_user" {
-  description = "Wazuh API username"
-  type        = string
-  default     = "wazuh"
-}
-
-variable "wazuh_api_password" {
-  description = "Wazuh API password"
-  type        = string
-  sensitive   = true
-}
-
 # ── Cloudflare Tunnel ─────────────────────────────────────────────────────────
 
 # token from systemctl status
