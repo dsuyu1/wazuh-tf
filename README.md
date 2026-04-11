@@ -146,6 +146,9 @@ wazuh-agents/
 If you set up Wazuh using Docker, Docker may already be holding port 1515. The manager may already be running in Docker. Therefore, you will not need to install the `systemd` manager.
   + Instead, all manager operations will happen inside of your container via `docker exec`.
 
+Make sure to have your AWS key already configured (`aws configure`) in the environment you're running this from.
+  + It's recommended to run this in WSL or a Linux environment to not run into any issues.
+
 Please feel free to send me message or any inquiries if you are having trouble.
 
 Thank you, and happy building!

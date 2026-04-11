@@ -57,6 +57,7 @@ variable "wazuh_api_password" {
 
 # ── Cloudflare Tunnel ─────────────────────────────────────────────────────────
 
+# token from systemctl status
 variable "cloudflare_tunnel_token" {
   description = "Cloudflare Tunnel token for agent-to-manager connectivity (leave empty if manager is directly reachable)"
   type        = string

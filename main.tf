@@ -100,12 +100,11 @@ resource "aws_instance" "wazuh_agent" {
 
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = each.value.instance_type
-  key_name               = aws_key_pair.agent_key.key_name
   vpc_security_group_ids = [aws_security_group.wazuh_agent.id]
   iam_instance_profile   = aws_iam_instance_profile.agent_profile.name
 
   # user_data installs the Wazuh agent and registers it to your Pi manager
-  user_data = templatefile("${path.module}/templates/install_agent.sh.tpl", {
+  user_data = templatefile("${path.module}/install_agent.sh.tpl", {
     wazuh_manager_ip      = var.wazuh_manager_ip
     wazuh_manager_port    = var.wazuh_manager_port
     wazuh_version         = var.wazuh_version
@@ -154,6 +153,7 @@ resource "null_resource" "create_wazuh_groups" {
   }
 
   provisioner "local-exec" {
+    interpreter=["bash", "-c"]
     command = <<-EOT
       # Obtain JWT token from Wazuh API
       TOKEN=$(curl -s -u "${var.wazuh_api_user}:${var.wazuh_api_password}" \
