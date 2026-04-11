@@ -1,6 +1,6 @@
 ![banner](banner.png)
 
-# Wazuh Agent Enrollment with Terraform
+# Wazuh Cloud Agent Enrollment via Terraform
 
 ## What This Does
 This repository hosts the resources for provisioning EC2 instances on AWS and fully enrolls them as Wazuh agents to your
@@ -148,6 +148,12 @@ If you set up Wazuh using Docker, Docker may already be holding port 1515. The m
 
 Make sure to have your AWS key already configured (`aws configure`) in the environment you're running this from.
   + It's recommended to run this in WSL or a Linux environment to not run into any issues.
+
+Cloudflare Tunnels are HTTP-first; raw TCP for Wazuh is a nightmare (I tried it)
+Docker-managed Wazuh means all operations happen via `docker exec`
+`run_as`: true in Wazuh dashboard config requires RBAC setup, false is simpler for a lab
+
+---
 
 Please feel free to send me message or any inquiries if you are having trouble.
 
