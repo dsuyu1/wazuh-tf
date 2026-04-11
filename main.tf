@@ -51,15 +51,6 @@ resource "aws_security_group" "wazuh_agent" {
   description = "Security group for Wazuh agent nodes"
   vpc_id      = data.aws_vpc.default.id
 
-  # SSH — restrict to your IP in terraform.tfvars
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = var.allowed_ssh_cidrs
-  }
-
   # All outbound allowed — agents need to reach Wazuh manager + Cloudflare
   egress {
     from_port   = 0
@@ -75,18 +66,7 @@ resource "aws_security_group" "wazuh_agent" {
   }
 }
 
-# ── SSH Key Pair ──────────────────────────────────────────────────────────────
-
-resource "aws_key_pair" "agent_key" {
-  key_name   = "${var.env_prefix}-wazuh-agent-key"
-  public_key = file(var.ssh_public_key_path)
-
-  tags = {
-    ManagedBy = "terraform"
-  }
-}
-
-# ── IAM Role for EC2 (optional but good practice) ────────────────────────────
+# ── IAM Role for EC2 ────────────────────────────
 
 resource "aws_iam_role" "agent_role" {
   name = "${var.env_prefix}-wazuh-agent-role"

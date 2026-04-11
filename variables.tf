@@ -10,22 +10,6 @@ variable "env_prefix" {
   default     = "lab-dev"
 }
 
-# ── Networking ────────────────────────────────────────────────────────────────
-
-variable "allowed_ssh_cidrs" {
-  description = "CIDRs allowed to SSH into agent instances. Restrict to your IP."
-  type        = list(string)
-  default     = ["0.0.0.0/0"] # Override in tfvars!
-}
-
-# ── SSH Key ───────────────────────────────────────────────────────────────────
-
-variable "ssh_public_key_path" {
-  description = "Path to your SSH public key file"
-  type        = string
-  default     = "~/.ssh/id_ed25519.pub"
-}
-
 # ── Wazuh Manager ────────────────────────────────────────
 
 variable "wazuh_manager_ip" {
