@@ -49,6 +49,8 @@ apt-get install wazuh-manager
 systemctl enable --now wazuh-manager
 ```
 
+Please note that you should not be running both the manager and the agent on the same machine. Pick one or the other.
+
 Verify authd is listening:
 ```bash
 ss -tlnp | grep 1515
@@ -71,7 +73,7 @@ Expose port `1514` (for agent telemetry) and `55000` (API) via your tunnel confi
 
 ```bash
 # 1. Clone / copy this directory
-cd wazuh-agents/
+cd wazuh-tf
 
 # 2. Set up your variables
 cp terraform.tfvars.example terraform.tfvars
@@ -139,5 +141,11 @@ wazuh-agents/
 └── templates/
     └── install_agent.sh.tpl       # user_data: agent install + enrollment
 ```
+
+## Troubeshooting
+If you set up Wazuh using Docker, Docker may already be holding port 1515. The manager may already be running in Docker. Therefore, you will not need to install the `systemd` manager.
+  + Instead, all manager operations will happen inside of your container via `docker exec`.
+
+Please feel free to send me message or any inquiries if you are having trouble.
 
 Thank you, and happy building!

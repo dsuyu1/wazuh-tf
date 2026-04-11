@@ -5,9 +5,9 @@ variable "aws_region" {
 }
 
 variable "env_prefix" {
-  description = "Short prefix for resource naming (e.g. visi-dev, visi-prod)"
+  description = ""
   type        = string
-  default     = "visi-dev"
+  default     = "lab-dev"
 }
 
 # ── Networking ────────────────────────────────────────────────────────────────
@@ -26,7 +26,7 @@ variable "ssh_public_key_path" {
   default     = "~/.ssh/id_ed25519.pub"
 }
 
-# ── Wazuh Manager (your Raspberry Pi) ────────────────────────────────────────
+# ── Wazuh Manager ────────────────────────────────────────
 
 variable "wazuh_manager_ip" {
   description = "IP or hostname of your Wazuh manager (Pi). Use Cloudflare Tunnel hostname if not publicly exposed."
