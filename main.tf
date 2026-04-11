@@ -43,7 +43,7 @@ resource "aws_security_group" "wazuh_agent" {
   description = "Security group for Wazuh agent nodes"
   vpc_id      = data.aws_vpc.default.id
 
-  # All outbound allowed — agents need to reach Wazuh manager + Cloudflare
+  # All outbound allowed — agents need to reach Wazuh manager 
   egress {
     from_port   = 0
     to_port     = 0
@@ -96,15 +96,15 @@ resource "aws_instance" "wazuh_agent" {
   iam_instance_profile   = aws_iam_instance_profile.agent_profile.name
 
   # user_data installs the Wazuh agent and registers it to your Pi manager
-  user_data = templatefile("${path.module}/install_agent.sh.tpl", {
-    wazuh_manager_ip      = var.wazuh_manager_ip
-    wazuh_manager_port    = var.wazuh_manager_port
-    wazuh_version         = var.wazuh_version
-    agent_name            = each.key
-    agent_group           = each.value.group
-    wazuh_registration_pw = var.wazuh_registration_password
-    cloudflare_tunnel_token = var.cloudflare_tunnel_token
-  })
+user_data = templatefile("${path.module}/install_agent.sh.tpl", {
+  wazuh_manager_ip      = var.wazuh_manager_ip
+  wazuh_manager_port    = var.wazuh_manager_port
+  wazuh_version         = var.wazuh_version
+  agent_name            = each.key
+  agent_group           = each.value.group
+  wazuh_registration_pw = var.wazuh_registration_password
+  tailscale_auth_key    = var.tailscale_auth_key
+})
 
   root_block_device {
     volume_type           = "gp3"

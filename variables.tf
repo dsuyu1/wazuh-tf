@@ -36,15 +36,14 @@ variable "wazuh_registration_password" {
   sensitive   = true
 }
 
-# ── Cloudflare Tunnel ─────────────────────────────────────────────────────────
 
-# token from systemctl status
-variable "cloudflare_tunnel_token" {
-  description = "Cloudflare Tunnel token for agent-to-manager connectivity (leave empty if manager is directly reachable)"
+# -- tailscale
+variable "tailscale_auth_key" {
+  description = "Tailscale auth key for EC2 agent enrollment"
   type        = string
   sensitive   = true
-  default     = ""
 }
+
 
 # ── Agent Definitions ─────────────────────────────────────────────────────────
 
