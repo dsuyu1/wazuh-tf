@@ -1,9 +1,6 @@
 terraform.tfvars
-*.tfstate*
+*.tfstate
 *.tfstate.backup
 .terraform/
 .terraform.lock.hcl
-*.pem
-*.key
-session-manager*
-terraform.tfstate*
+**/.terraform/*

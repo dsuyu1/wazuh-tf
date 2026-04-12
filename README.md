@@ -158,3 +158,6 @@ Docker-managed Wazuh means all operations happen via `docker exec`
 Please feel free to send me message or any inquiries if you are having trouble.
 
 Thank you, and happy building!
+
+<!-- BEGIN_TF_DOCS -->
+<!-- END_TF_DOCS -->
