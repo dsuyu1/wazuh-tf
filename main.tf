@@ -1,19 +1,19 @@
 terraform {
   required_version = ">= 1.6.0"
 
+  backend "s3" {
+    bucket         = "visi-wazuh-tfstate"
+    key            = "wazuh-agents/terraform.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
+    dynamodb_table = "visi-wazuh-tfstate-lock"
+  }
+
   required_providers {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-  }
-}
-# added remote state
-terraform {
-  backend "s3" {
-    bucket = "your-tfstate-bucket"
-    key    = "wazuh-agents/terraform.tfstate"
-    region = "us-east-1"
   }
 }
 
