@@ -1,23 +1,22 @@
 name: Terraform Docs
 
 on:
-  push:
+  pull_request:
     branches: [main]
 
 permissions:
-  contents: write  # ADD THIS
+  contents: read
 
 jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: terraform-docs/gh-actions@v1
         with:
           working-dir: .
           output-file: README.md
           output-method: inject
-          git-push: true
+          git-push: false
+          fail-on-diff: true
