@@ -6,3 +6,4 @@ terraform.tfvars
 *.pem
 *.key
 session-manager*
+terraform.tfstate*
