@@ -2,21 +2,34 @@
 
 # Wazuh Cloud Agent Enrollment via Terraform
 
+Terraform module for provisioning AWS EC2 instances and automatically enrolling them as Wazuh agents into your Wazuh manager — including agent installation, auto-enrollment via authd, and zero-trust networking via Tailscale.
+
+Built and maintained by [VISI (Vaquero Information Security Initiative)](https://vaqueroisi.org) at UTRGV.
+
+---
+
 ## What This Does
-This repository hosts the resources for provisioning EC2 instances on AWS and fully enrolls them as Wazuh agents to your
-Wazuh manager. As an overview:
 
 1. **EC2 instance creation** with IMDSv2, encrypted EBS, and SSM access
-2. **Wazuh agent installation** via `user_data` on first boot (boostrapping)
-3. **Auto-enrollment** using `WAZUH_REGISTRATION_PASSWORD` (authd)
-  + You need to enable `authd` password enrollment and set the password file. Details are listed below on how to do that.
-4. **Agent group creation** on your manager via the Wazuh REST API
-5. **Optional Cloudflare Tunnel** install on each agent for manager connectivity
+2. **Tailscale installation** on each agent for zero-trust connectivity to your manager
+3. **Wazuh agent installation** via `user_data` on first boot (bootstrapping)
+4. **Auto-enrollment** using `WAZUH_REGISTRATION_PASSWORD` (authd)
+
+> **Why Tailscale?** Cloudflare Tunnels are HTTP-first. Wazuh agents communicate over raw TCP on ports 1514 and 1515, which Cloudflare cannot proxy transparently without `cloudflared` running on every agent — and even then it's unreliable. Tailscale creates a WireGuard mesh where your manager is reachable at a stable `100.x.x.x` IP from any agent, anywhere. It just works.
+
+---
 
 ## Prerequisites
 
-### Configure Wazuh Manager
-Enable [password-based agent enrollment](https://documentation.wazuh.com/current/user-manual/agent/agent-enrollment/security-options/using-password-authentication.html) in `/var/ossec/etc/ossec.conf`:
+### 1. Wazuh Manager
+
+This module assumes you already have a Wazuh manager running. If your manager runs in Docker (common for self-hosted setups), all manager operations happen inside the container:
+
+```bash
+docker exec -it <wazuh-manager-container> /bin/bash
+```
+
+**Enable password-based agent enrollment** in `/var/ossec/etc/ossec.conf`:
 
 ```xml
 <auth>
@@ -24,55 +37,69 @@ Enable [password-based agent enrollment](https://documentation.wazuh.com/current
 </auth>
 ```
 
-Set the password:
+**Set the registration password:**
+
 ```bash
-echo "<CUSTOM_PASSWORD>" > /var/ossec/etc/authd.pass
+echo "<YOUR_REGISTRATION_PASSWORD>" > /var/ossec/etc/authd.pass
 chmod 640 /var/ossec/etc/authd.pass
 chown root:wazuh /var/ossec/etc/authd.pass
 ```
 
-Run the following command to get the Wazuh agent enrollment password:
+**Restart the manager:**
+
 ```bash
-grep "Random password" /var/ossec/logs/ossec.log
+# Systemd
+systemctl restart wazuh-manager
+
+# Docker
+docker restart <wazuh-manager-container>
 ```
 
-If you don't have Wazuh manager installed, you can run these commands:
-```bash
-curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH \
-  | gpg --dearmor -o /usr/share/keyrings/wazuh.gpg
+**Verify authd is listening:**
 
-echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main" \
-  > /etc/apt/sources.list.d/wazuh.list
-
-apt-get update
-apt-get install wazuh-manager
-systemctl enable --now wazuh-manager
-```
-
-Please note that you should not be running both the manager and the agent on the same machine. Pick one or the other.
-
-Verify authd is listening:
 ```bash
 ss -tlnp | grep 1515
 ```
 
-### Cloudflare Tunnel
-If you already use Cloudflare Tunnels, you may find that it's most natural to use Cloudflare Tunnels for agent management.
-- For example, your Wazuh instance is not publicly accessible (e.g., it's locally hosted).
+> **Docker note:** If you installed Wazuh via the official Docker single-node deployment, Docker is likely already holding port 1515. Do not install the systemd `wazuh-manager` package alongside it — pick one or the other. If you're running Docker, you don't need the systemd manager.
 
-Expose port `1514` (for agent telemetry) and `55000` (API) via your tunnel config. The `cloudflare_tunnel_token` variable in `tfvars` can install the tunnel daemon on each agent VM too.
-- An example `tfvars` file is provided.
+---
 
-### Local Machine
+### 2. Tailscale
+
+Install Tailscale on your Wazuh manager machine:
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+tailscale up
+```
+
+Get your manager's Tailscale IP — this goes into `terraform.tfvars` as `wazuh_manager_ip`:
+
+```bash
+tailscale ip -4
+# Example output: 100.98.68.3
+```
+
+Generate a **reusable ephemeral auth key** for EC2 agents at [login.tailscale.com/admin/settings/keys](https://login.tailscale.com/admin/settings/keys). This goes into `terraform.tfvars` as `tailscale_auth_key`.
+
+> Ephemeral keys mean agents automatically disappear from your Tailscale network when they're destroyed — no manual cleanup needed.
+
+---
+
+### 3. Local Machine
+
 - Terraform >= 1.6
-- AWS credentials configured (`aws configure` or env vars)
-  + You may need to install the AWS CLI on the machine you're running Terraform from.
-- Python3 (used in the group creation `local-exec`)
+- AWS credentials configured (`aws configure` or environment variables)
+- It's recommended to run this from WSL or a Linux environment to avoid issues with line endings in shell scripts
+
+---
 
 ## Usage
 
 ```bash
-# 1. Clone / copy this directory
+# 1. Clone the repo
+git clone https://github.com/dsuyu1/wazuh-tf.git
 cd wazuh-tf
 
 # 2. Set up your variables
@@ -88,10 +115,11 @@ terraform plan
 # 5. Deploy
 terraform apply
 
-# 6. Verify on your Pi after ~2 minutes
-# SSH into Pi, then:
-/var/ossec/bin/agent_control -l
+# 6. Verify enrollment (~2 minutes after apply)
+docker exec -it <wazuh-manager-container> /var/ossec/bin/agent_control -l
 ```
+
+---
 
 ## Adding More Agents
 
@@ -107,7 +135,9 @@ agents = {
 }
 ```
 
-Then run `terraform apply` — only the new instance is created.
+Then run `terraform apply` — only the new instance is created. Existing agents are untouched.
+
+---
 
 ## Tearing Down
 
@@ -115,49 +145,72 @@ Then run `terraform apply` — only the new instance is created.
 terraform destroy
 ```
 
-Note: Destroyed EC2 instances will leave orphaned agent entries in Wazuh.
-Clean them up on the Pi:
+Destroyed EC2 instances will leave orphaned agent entries in Wazuh. Clean them up via the Wazuh dashboard or:
+
 ```bash
-/var/ossec/bin/manage_agents  # or via Wazuh dashboard
+docker exec -it <wazuh-manager-container> /var/ossec/bin/manage_agents
 ```
+
+Since agents use ephemeral Tailscale keys, they'll automatically disappear from your Tailscale network on destroy.
+
+---
 
 ## Security Notes
 
-- `terraform.tfvars` contains secrets — **never commit it**. Add to `.gitignore`.
-- Use Terraform Cloud / AWS Secrets Manager for production secret management.
-- The `wazuh_registration_password` should be rotated periodically.
+- `terraform.tfvars` contains secrets — **never commit it**. It's in `.gitignore` for a reason.
+- Use Terraform Cloud or AWS Secrets Manager for production secret management.
+- Rotate `wazuh_registration_password` periodically.
 - IMDSv2 is enforced on all instances (`http_tokens = "required"`).
-- SSM is enabled so you can access instances without opening SSH publicly.
+- No inbound ports are open on agent instances — access is via SSM only.
+
+---
 
 ## File Structure
 
 ```
-wazuh-agents/
-├── main.tf                        # EC2, SG, IAM, Wazuh API group creation
+wazuh-tf/
+├── main.tf                        # EC2, SG, IAM resources
 ├── variables.tf                   # All input variable definitions
-├── outputs.tf                     # Instance IDs, IPs, groups
+├── outputs.tf                     # Instance IDs, IPs
 ├── terraform.tfvars.example       # Safe template (commit this)
 ├── terraform.tfvars               # Your real values (DO NOT commit)
+├── CONTRIBUTING.md                # How to contribute
+├── LICENSE                        # Apache 2.0
 └── templates/
-    └── install_agent.sh.tpl       # user_data: agent install + enrollment
+    └── install_agent.sh.tpl       # user_data: Tailscale + Wazuh install
 ```
-
-## Troubeshooting
-If you set up Wazuh using Docker, Docker may already be holding port 1515. The manager may already be running in Docker. Therefore, you will not need to install the `systemd` manager.
-  + Instead, all manager operations will happen inside of your container via `docker exec`.
-
-Make sure to have your AWS key already configured (`aws configure`) in the environment you're running this from.
-  + It's recommended to run this in WSL or a Linux environment to not run into any issues.
-
-Cloudflare Tunnels are HTTP-first; raw TCP for Wazuh is a nightmare (I tried it)
-Docker-managed Wazuh means all operations happen via `docker exec`
-`run_as`: true in Wazuh dashboard config requires RBAC setup, false is simpler for a lab
 
 ---
 
-Please feel free to send me message or any inquiries if you are having trouble.
+## Troubleshooting
 
-Thank you, and happy building!
+**Agents not showing in Wazuh dashboard but active in `agent_control -l`**
+This is usually the `run_as: true` setting in your Wazuh dashboard config. Set it to `false`:
+```bash
+# Find your dashboard config and update
+sed -i 's/run_as: true/run_as: false/' /path/to/wazuh.yml
+docker restart <wazuh-dashboard-container>
+```
+
+**`terraform apply` hangs or fails with bash errors on Windows**
+Run from WSL, not PowerShell. The install scripts use bash syntax that PowerShell cannot handle.
+
+**Agents enrolled but showing wrong name (e.g. `ip-172-31-x-x`)**
+Make sure `WAZUH_AGENT_NAME` in the template is set to `${agent_name}` from your tfvars, not the EC2 hostname.
+
+**`grep "Random password"` returns nothing**
+On Docker deployments, the random password is logged once at first install and rotates out quickly. Retrieve your API credentials from your `docker-compose.yml` or `.env` file instead.
+
+**Port 1515 already in use**
+If you're running Wazuh in Docker, Docker is already holding 1515. Don't install the systemd `wazuh-manager` package — it will conflict. All manager operations should happen inside the container via `docker exec`.
+
+---
 
 <!-- BEGIN_TF_DOCS -->
 <!-- END_TF_DOCS -->
+
+---
+
+Feel free to open an issue or start a discussion if you're running into trouble. Happy building!
+
+— [VISI](https://vaqueroisi.org) | University of Texas Rio Grande Valley
