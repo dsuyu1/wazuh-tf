@@ -27,7 +27,7 @@ variable "wazuh_manager_port" {
 variable "wazuh_version" {
   description = "Wazuh agent version to install (must match your manager version)"
   type        = string
-  default     = "4.9.2" # Pin this to match your Pi manager version
+  default     = "4.9.2" # change this to match your manager version
 }
 
 variable "wazuh_registration_password" {
@@ -37,7 +37,7 @@ variable "wazuh_registration_password" {
 }
 
 
-# -- tailscale
+# ── Tailscale ─────────────────────────────────────────────────────────
 variable "tailscale_auth_key" {
   description = "Tailscale auth key for EC2 agent enrollment"
   type        = string
